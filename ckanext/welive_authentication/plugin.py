@@ -6,8 +6,19 @@ import logging
 import requests
 import xmltodict
 import pylons
+import ConfigParser
+import os
 
 log = logging.getLogger(__name__)
+
+config = ConfigParser.ConfigParser()
+config.read(os.environ['CKAN_CONFIG'])
+
+PLUGIN_SECTION = 'plugin:authentication'
+VALIDATION_URL = config.get(PLUGIN_SECTION, 'validation_url')
+
+MAIN_SECTION = 'app:main'
+CKAN_SITE_URL = config.get(MAIN_SECTION, 'ckan.site_url')
 
 
 class Welive_AuthenticationPlugin(plugins.SingletonPlugin):
@@ -32,9 +43,10 @@ class Welive_AuthenticationPlugin(plugins.SingletonPlugin):
             toolkit.c.user = user_name
         elif 'ticket' in request.GET:
             ticket = request.GET.get('ticket')
-            url = 'http://172.28.128.30:5000'
             response = requests.get(
-                'https://dev.smartcommunitylab.it/aac/cas/serviceValidate?service=%s&ticket=%s' % (url, ticket))
+                VALIDATION_URL,
+                params={'service': CKAN_SITE_URL, 'ticket': ticket}
+            )
 
             response_dict = xmltodict.parse(response.text)
             username = None
