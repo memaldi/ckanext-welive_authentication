@@ -51,7 +51,6 @@ class Welive_AuthenticationPlugin(plugins.SingletonPlugin):
     def identify(self):
         log.debug('identify')
         user_name = pylons.session.get('ckanext-welive-user')
-        print user_name
         if user_name:
             # We've found a logged-in user. Set c.user to let CKAN know.
             toolkit.c.user = user_name
@@ -64,31 +63,26 @@ class Welive_AuthenticationPlugin(plugins.SingletonPlugin):
 
             response_dict = xmltodict.parse(response.text)
             username = None
-            print response.text
-            print response_dict
             if 'cas:serviceResponse' in response_dict:
                 if 'cas:authenticationSuccess' in response_dict['cas:serviceResponse']:
                     if 'cas:username' in response_dict['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']:
                         print 'hey'
                         username = response_dict['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']['cas:username']
                         print username
-                    elif 'OIDC_CLAIM_email' in response_dict['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']:
-                        username = response_dict['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']['OIDC_CLAIM_email']
-            print username
+                    elif 'cas:OIDC_CLAIM_email' in response_dict['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']:
+                        username = response_dict['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']['cas:OIDC_CLAIM_email']
             if username is not None:
                 try:
-                    print username
                     user = toolkit.get_action('user_show')(
                         context={},
                         data_dict={'id': username})
-                    print user
                     toolkit.c.user = user['name']
                     pylons.session['ckanext-welive-user'] = user['name']
                     pylons.session.save()
                 except logic.NotFound:
                     user = model.User(name=username,
                                       email=username,
-                                      password=uuid.uuid4())
+                                      password=str(uuid.uuid4()))
                     user.save()
                     model.repo.commit()
                     toolkit.c.user = user.name
